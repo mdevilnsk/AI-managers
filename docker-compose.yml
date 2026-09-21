@@ -1,0 +1,53 @@
+services:
+  animaworks:
+    image: mdevilnsk/animaworks:latest
+    container_name: animaworks
+    restart: unless-stopped
+    ports:
+      - "18500:18500"
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+      GH_TOKEN: ${GH_TOKEN:-}
+      GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME:-}
+      GIT_AUTHOR_EMAIL: ${GIT_AUTHOR_EMAIL:-}
+      TZ: Asia/Dushanbe
+    networks:
+      - app-net
+    volumes:
+      - ./animaworks_data:/root/.animaworks
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:18500/api/system/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  aliyun-model-proxy:
+    build:
+      context: ./aliyun-model-proxy
+      dockerfile: Dockerfile
+    container_name: aliyun-model-proxy
+    restart: unless-stopped
+    environment:
+      PORT: 3300
+      PROXY_API_KEY: ${PROXY_API_KEY:-sk-animaworks-proxy-001}
+      DASHSCOPE_API_KEYS: ${DASHSCOPE_API_KEY}          # если один ключ
+      # DASHSCOPE_API_KEYS: ${DASHSCOPE_API_KEYS}       # если несколько ключей через запятую
+      MODEL_IDS: ${MODEL_IDS:-qwen3.7-max,qwen3.7-plus}
+      UPSTREAM_BASE_URL: https://ws-j0wwqijwfsf3egfh.ap-southeast-1.maas.aliyuncs.com/apps/anthropic
+      OPENAI_UPSTREAM_BASE_URL: https://ws-j0wwqijwfsf3egfh.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1
+      MODEL_COOLDOWN_SECONDS: 2592000
+      STATE_PATH: /app/data/proxy-state.json
+      UPSTREAM_AUTH_MODE: authorization
+      CORS_ORIGIN: "*"
+    volumes:
+      - ./aliyun-model-proxy-data:/app/data
+    networks:
+      - app-net
+    ports:
+      - "3300:3300"   # раскомментируйте, если хотите дёргать прокси с хоста для отладки
+
+networks:
+  app-net:
+    driver: bridge
