@@ -15,7 +15,8 @@ services:
     networks:
       - app-net
     volumes:
-      - ./animaworks_data:/root/.animaworks
+      - ./animaworks-data:/root/.animaworks
+      - .env:/app/.env
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:18500/api/system/health')"]
       interval: 30s
